@@ -9,11 +9,10 @@ MMD介绍
 -----
 
 MMD（最大均值差异）是迁移学习，尤其是Domain adaptation （域适应）中使用最广泛（目前）的一种损失函数，主要用来度量两个不同但相关的分布的距离。两个分布的距离定义为：
+![](/pyreading/img/Figure001.png)
 
-MMD(X,Y)=∣∣1n∑i=1nϕ(xi)−1m∑j=1mϕ(yj)∣∣H2(1)MMD(X,Y) = ||\\frac{1}{n}\\sum_{i=1}^n\\phi(x\_i)-\\frac{1 {m}\\sum\_{j=1}^m\\phi(y\_j)||\_H^2\\tag{1}MMD(X,Y)=∣∣n1​i=1∑n​ϕ(xi​)−m1​j=1∑m​ϕ(yj​)∣∣H2​(1) 
 
-
-其中 HHH 表示这个距离是由 ϕ()\\phi()ϕ() 将数据映射到再生希尔伯特空间（RKHS）中进行度量的。
+其中 HHH 表示这个距离是由 ϕ() 将数据映射到再生希尔伯特空间（RKHS）中进行度量的。
 
 为什么要用MMD?
 ---------
@@ -23,19 +22,34 @@ Domain adaptation的目的是将源域（Source domain）中学到的知识可�
 MMD的理论推导
 --------
 
-MMD的关键在于如何找到一个合适的 ϕ()\\phi()ϕ() 来作为一个映射函数。但是这个映射函数可能在不同的任务中都不是固定的，并且这个映射可能高维空间中的映射，所以是很难去选取或者定义的。那如果不能知道ϕ\\phiϕ，那MMD该如何求呢？我们先展开把MMD展开：  
-MMD(X,Y)=∣∣1n2∑in∑i′nϕ(xi)ϕ(xi′)−2nm∑in∑jmϕ(xi)ϕ(yj)+1m2∑jm∑j′mϕ(yj)ϕ(yj′)∣∣H(2)MMD(X,Y) =||\\frac{1}{n^2}\\sum_{i}^n\\sum_{i'}^n\\phi(x\_i)\\phi(x\_i')-\\frac{2}{nm}\\sum_{i}^n\\sum_{j}^m\\phi(x\_i)\\phi(y\_j)+\\frac{1}{m^2}\\sum_{j}^m\\sum_{j'}^m\\phi(y\_j)\\phi(y\_j')||_H\\tag{2}MMD(X,Y)=∣∣n21​i∑n​i′∑n​ϕ(xi​)ϕ(xi′​)−nm2​i∑n​j∑m​ϕ(xi​)ϕ(yj​)+m21​j∑m​j′∑m​ϕ(yj​)ϕ(yj′​)∣∣H​(2)  
-展开后就出现了ϕ(xi)ϕ(xi′)\\phi(x\_i)\\phi(x\_i')ϕ(xi​)ϕ(xi′​)的形式，这样联系SVM中的核函数k(∗)k(*)k(∗)，就可以跳过计算ϕ\\phiϕ的部分，直接求k(xi)k(xi′)k(x\_i)k(x\_i')k(xi​)k(xi′​)。所以MMD又可以表示为：  
-MMD(X,Y)=∣∣1n2∑in∑i′nk(xi,xi′)−2nm∑in∑jmk(xi,yj)+1m2∑jm∑j′mk(yj,yj′)∣∣H(3)MMD(X,Y) =||\\frac{1}{n^2}\\sum_{i}^n\\sum_{i'}^nk(x\_i, x\_i')-\\frac{2}{nm}\\sum_{i}^n\\sum_{j}^mk(x\_i, y\_j)+\\frac{1}{m^2}\\sum_{j}^m\\sum_{j'}^mk(y\_j, y\_j')||_H\\tag{3}MMD(X,Y)=∣∣n21​i∑n​i′∑n​k(xi​,xi′​)−nm2​i∑n​j∑m​k(xi​,yj​)+m21​j∑m​j′∑m​k(yj​,yj′​)∣∣H​(3)  
-在大多数论文中（比如DDC, DAN），都是用高斯核函数k(u,v)=e−∣∣u−v∣∣2σk(u,v) = e^{\\frac{-||u-v||^2}{\\sigma}}k(u,v)=eσ−∣∣u−v∣∣2​来作为核函数，至于为什么选用高斯核，最主要的应该是高斯核可以映射无穷维空间（具体的之后再分析）
+MMD的关键在于如何找到一个合适的 ϕ() 来作为一个映射函数。但是这个映射函数可能在不同的任务中都不是固定的，并且这个映射可能高维空间中的映射，所以是很难去选取或者定义的。那如果不能知道ϕ，那MMD该如何求呢？我们先展开把MMD展开： 
+
+![](/pyreading/img/Figure002.png)
+
+展开后就出现了ϕ(xi)ϕ(xi′)的形式，这样联系SVM中的核函数k(∗)，就可以跳过计算ϕ的部分，直接求k(xi)k(xi′)。所以MMD又可以表示为：  
+
+![](/pyreading/img/Figure003.png)
+
+在大多数论文中（比如DDC, DAN），都是用高斯核函数:
+
+![](/pyreading/img/Figure004.png)
+
+来作为核函数，至于为什么选用高斯核，最主要的应该是高斯核可以映射无穷维空间（具体的之后再分析）
 
 理论到这里就差不多了，那如何进行实现呢？
 
 在TCA中，引入了一个核矩阵方便计算  
-\[Ks,sKs,sKs,tKt,t\](4) \\begin{bmatrix} K_{s,s} & K_{s,s} \\\ K_{s,t} & K_{t,t} \\\ \\end{bmatrix} \\tag{4} \[Ks,s​Ks,t​​Ks,s​Kt,t​​\](4)  
-以及L矩阵：  
-li,j={1/n2,xi,xj∈Ds1/m2,xi,xj∈Ds−1/nm,otherwise(5) l_{i,j} = \\begin{cases} 1/{n^2}, & \\text{$x\_i, x\_j\\in D\_s$} \\\ 1/{m^2}, & \\text{$x\_i, x\_j\\in D\_s$} \\\ -1/{nm},& \\text{otherwise} \\end{cases} \\tag{5} li,j​=⎩⎪⎨⎪⎧​1/n2,1/m2,−1/nm,​xi​,xj​∈Ds​xi​,xj​∈Ds​otherwise​(5)  
-在实际应用中，高斯核的σ\\sigmaσ会取多个值，分别求核函数然后取和，作为最后的核函数。  
+
+![](/pyreading/img/Figure005.png) 
+
+
+以及L矩阵：
+
+
+![](/pyreading/img/Figure006.png)
+
+
+在实际应用中，高斯核的σ会取多个值，分别求核函数然后取和，作为最后的核函数。  
 ##代码解读
 
     import torch
